@@ -8,6 +8,7 @@ export interface Patient {
   psychologistName: string
   psychologistOnline?: boolean
   psychologistSchedule?: string
+  token?: string
 }
 
 const API_URL = 'http://127.0.0.1:8001';
@@ -22,7 +23,8 @@ export async function validateAccessCode(code: string): Promise<Patient | null> 
       patientCode: data.patient_code,
       accessCode: data.access_code,
       psychologistName: data.psychologist_name || "Tu Psicólogo",
-      psychologistSchedule: data.psychologist_schedule || "Disponible 9:00 - 18:00"
+      psychologistSchedule: data.psychologist_schedule || "Disponible 9:00 - 18:00",
+      token: data.access_token
     };
   } catch (e) {
     console.error("Auth error", e);

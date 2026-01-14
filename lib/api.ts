@@ -1,4 +1,5 @@
 export const API_URL = 'http://127.0.0.1:8001';
+import { getCurrentPatient } from './auth';
 
 export type Assignment = {
     id: number;
@@ -21,9 +22,16 @@ export type Assignment = {
     }
 }
 
+function getAuthHeader(): Record<string, string> {
+    const patient = getCurrentPatient();
+    return patient?.token ? { 'Authorization': `Bearer ${patient.token}` } : {};
+}
+
 export async function getAssignments(accessCode: string): Promise<Assignment[]> {
     try {
-        const res = await fetch(`${API_URL}/assignments/patient/${accessCode}`);
+        const res = await fetch(`${API_URL}/assignments/patient/${accessCode}`, {
+            headers: { ...getAuthHeader() }
+        });
         if (!res.ok) return [];
         return await res.json();
     } catch (e) {
@@ -36,7 +44,10 @@ export async function submitAssignment(assignmentId: number, answers: any[]): Pr
     try {
         const res = await fetch(`${API_URL}/assignments/${assignmentId}/submit`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeader()
+            },
             body: JSON.stringify(answers),
         });
         return res.ok;
@@ -56,7 +67,9 @@ export interface ChatMessage {
 
 export async function getMessages(patientId: number): Promise<ChatMessage[]> {
     try {
-        const res = await fetch(`${API_URL}/messages/${patientId}`);
+        const res = await fetch(`${API_URL}/messages/${patientId}`, {
+            headers: { ...getAuthHeader() }
+        });
         if (!res.ok) return [];
         return await res.json();
     } catch (e) {
@@ -69,7 +82,10 @@ export async function sendMessage(patientId: number, content: string): Promise<C
     try {
         const res = await fetch(`${API_URL}/messages`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeader()
+            },
             body: JSON.stringify({ patient_id: patientId, content, is_from_patient: true }),
         });
         if (!res.ok) return null;
