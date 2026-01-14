@@ -3,8 +3,7 @@
 import { MessageSquare, ClipboardList, Home } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { shouldShowForm } from "@/lib/forms"
-import { getMessages } from "@/lib/api"
+import { getMessages, getAssignments } from "@/lib/api"
 import { useEffect, useState } from "react"
 import { getCurrentPatient } from "@/lib/auth"
 
@@ -16,29 +15,33 @@ export function BottomNav() {
   useEffect(() => {
     const currentPatient = getCurrentPatient()
     if (currentPatient) {
-      setShowFormNotification(shouldShowForm())
-
-      const checkMessages = async () => {
-        const msgs = await getMessages(currentPatient.id);
+      const checkData = async () => {
+        // Check messages
+        const msgs = await getMessages(currentPatient.id); // Assuming id is number, but we fixed api to accept string
         if (msgs.length > 0) {
           const lastMsg = msgs[msgs.length - 1];
-          // Only notify if last message is NOT from patient (i.e. from psychologist)
           if (!lastMsg.is_from_patient) {
             const lastRead = localStorage.getItem('lastReadMessageId');
             if (!lastRead || parseInt(lastRead) < lastMsg.id) {
               setHasUnreadMessages(true);
-              return;
+            } else {
+              setHasUnreadMessages(false);
             }
+          } else {
+            setHasUnreadMessages(false);
           }
         }
-        setHasUnreadMessages(false);
+
+        // Check assignments
+        const assignments = await getAssignments(currentPatient.accessCode);
+        const hasActiveAssignments = assignments.some(a => a.status === 'active' || a.status === 'paused');
+        setShowFormNotification(hasActiveAssignments);
       };
 
-      checkMessages();
-      const interval = setInterval(checkMessages, 5000);
+      checkData();
+      const interval = setInterval(checkData, 5000);
 
-      // Listen for local storage changes (e.g. when chat page marks as read)
-      const handleStorage = () => checkMessages();
+      const handleStorage = () => checkData();
       window.addEventListener('storage', handleStorage);
 
       return () => {

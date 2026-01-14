@@ -65,7 +65,7 @@ export interface ChatMessage {
     created_at: string;
 }
 
-export async function getMessages(patientId: number): Promise<ChatMessage[]> {
+export async function getMessages(patientId: number | string): Promise<ChatMessage[]> {
     try {
         const res = await fetch(`${API_URL}/messages/${patientId}`, {
             headers: { ...getAuthHeader() }
@@ -78,7 +78,7 @@ export async function getMessages(patientId: number): Promise<ChatMessage[]> {
     }
 }
 
-export async function sendMessage(patientId: number, content: string): Promise<ChatMessage | null> {
+export async function sendMessage(patientId: number | string, content: string): Promise<ChatMessage | null> {
     try {
         const res = await fetch(`${API_URL}/messages`, {
             method: 'POST',
