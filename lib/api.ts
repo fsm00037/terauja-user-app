@@ -95,3 +95,38 @@ export async function sendMessage(patientId: number | string, content: string): 
         return null;
     }
 }
+
+export async function sendHeartbeat(): Promise<void> {
+    try {
+        await fetch(`${API_URL}/heartbeat`, {
+            method: 'POST',
+            headers: { ...getAuthHeader() }
+        });
+    } catch (e) {
+        // Silent fail
+    }
+}
+
+export async function logout(): Promise<void> {
+    try {
+        await fetch(`${API_URL}/logout`, {
+            method: 'POST',
+            headers: { ...getAuthHeader() }
+        });
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+export async function getPatientStatus(): Promise<{ is_online: boolean; psychologist_is_online: boolean } | null> {
+    try {
+        const res = await fetch(`${API_URL}/patient/status`, {
+            headers: { ...getAuthHeader() }
+        });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (e) {
+        console.error(e);
+        return null;
+    }
+}

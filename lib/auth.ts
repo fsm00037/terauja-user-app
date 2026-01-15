@@ -35,6 +35,7 @@ export async function validatePatientLogin(email: string, code: string): Promise
       accessCode: data.access_code,
       psychologistName: data.psychologist_name || "Tu Psicólogo",
       psychologistSchedule: data.psychologist_schedule || "Disponible 9:00 - 18:00",
+      psychologistOnline: data.psychologist_is_online, // Map the new field
       token: data.access_token
     };
   } catch (e) {
@@ -60,7 +61,10 @@ export function setCurrentPatient(patient: Patient): void {
   localStorage.setItem("patient", JSON.stringify(patient))
 }
 
-export function logout(): void {
+import { logout as apiLogout } from "./api"
+
+export async function logout(): Promise<void> {
+  await apiLogout() // Notify backend
   localStorage.removeItem("patient")
 }
 

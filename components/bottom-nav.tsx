@@ -41,11 +41,23 @@ export function BottomNav() {
       checkData();
       const interval = setInterval(checkData, 5000);
 
+      // Heartbeat every 60s
+      const heartbeatInterval = setInterval(() => {
+        // Dynamic import or passed prop to avoid import cycle if needed, but direct import is fine
+        // Assuming update done in api.ts
+      }, 60000);
+      import("@/lib/api").then(api => api.sendHeartbeat());
+
+      const hbInt = setInterval(() => {
+        import("@/lib/api").then(api => api.sendHeartbeat());
+      }, 60000);
+
       const handleStorage = () => checkData();
       window.addEventListener('storage', handleStorage);
 
       return () => {
         clearInterval(interval);
+        clearInterval(hbInt);
         window.removeEventListener('storage', handleStorage);
       }
     }

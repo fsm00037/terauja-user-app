@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentPatient, isPsychologistOnline, type Patient, logout, setCurrentPatient } from "@/lib/auth"
+import { getCurrentPatient, type Patient, logout } from "@/lib/auth"
 import { getAssignments, type Assignment } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Bell, Clock, LogOut } from "lucide-react"
@@ -21,27 +21,34 @@ export default function DashboardPage() {
       router.push("/login")
     } else {
       setPatient(currentPatient)
-      setPsychologistOnline(isPsychologistOnline(currentPatient.id))
+      setPsychologistOnline(currentPatient.psychologistOnline || false)
 
-      // Fetch Real Assignments
-      getAssignments(currentPatient.accessCode).then(assignments => {
-        // Find the first active assignment
+      const fetchData = async () => {
+        const assignments = await getAssignments(currentPatient.accessCode)
         const pending = assignments.find(a => a.status === 'active')
-        if (pending) {
-          setPendingAssignment(pending)
+        if (pending) setPendingAssignment(pending)
+      }
+
+      const checkStatus = async () => {
+        const status = await import("@/lib/api").then(mod => mod.getPatientStatus())
+        if (status) {
+          setPsychologistOnline(status.psychologist_is_online)
         }
-      })
+      }
+
+      fetchData()
+      checkStatus()
 
       const interval = setInterval(() => {
-        setPsychologistOnline(isPsychologistOnline(currentPatient.id))
-      }, 30000)
+        checkStatus()
+      }, 5000)
 
       return () => clearInterval(interval)
     }
   }, [router])
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     router.push("/login")
   }
 

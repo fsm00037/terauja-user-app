@@ -3,7 +3,7 @@
 import type React from "react"
 import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentPatient, isPsychologistOnline, type Patient } from "@/lib/auth"
+import { getCurrentPatient, type Patient } from "@/lib/auth"
 import { getMessages, sendMessage, type ChatMessage } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,7 +20,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  const refreshMessages = async (pId: number) => {
+  const refreshMessages = async (pId: string | number) => {
     const msgs = await getMessages(pId);
     setMessages(msgs);
   }
@@ -32,11 +32,17 @@ export default function ChatPage() {
     } else {
       setPatient(currentPatient)
       refreshMessages(currentPatient.id)
-      setPsychologistOnline(isPsychologistOnline(currentPatient.id))
+
+      const checkStatus = async () => {
+        const status = await import("@/lib/api").then(mod => mod.getPatientStatus())
+        if (status) setPsychologistOnline(status.psychologist_is_online)
+      }
+
+      checkStatus()
 
       const interval = setInterval(() => {
         refreshMessages(currentPatient.id)
-        setPsychologistOnline(isPsychologistOnline(currentPatient.id))
+        checkStatus()
       }, 5000)
 
       return () => clearInterval(interval)
@@ -107,8 +113,8 @@ export default function ChatPage() {
                 >
                   <Card
                     className={`px-3 py-2 ${!isFromPatient
-                        ? "bg-muted border-muted rounded-br-sm"
-                        : "bg-primary text-primary-foreground border-primary rounded-bl-sm"
+                      ? "bg-muted border-muted rounded-br-sm"
+                      : "bg-primary text-primary-foreground border-primary rounded-bl-sm"
                       } rounded-2xl`}
                   >
                     <p className="text-sm leading-relaxed">{message.content}</p>
