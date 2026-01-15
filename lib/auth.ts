@@ -13,9 +13,20 @@ export interface Patient {
 
 const API_URL = 'http://127.0.0.1:8001';
 
-export async function validateAccessCode(code: string): Promise<Patient | null> {
+export async function validatePatientLogin(email: string, code: string): Promise<Patient | null> {
   try {
-    const res = await fetch(`${API_URL}/auth/${code}`, { cache: 'no-store' });
+    const res = await fetch(`${API_URL}/auth`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email,
+        access_code: code
+      }),
+      cache: 'no-store'
+    });
+
     if (!res.ok) return null;
     const data = await res.json();
     return {

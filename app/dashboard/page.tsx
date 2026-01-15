@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentPatient, isPsychologistOnline, type Patient, logout, validateAccessCode, setCurrentPatient } from "@/lib/auth"
+import { getCurrentPatient, isPsychologistOnline, type Patient, logout, setCurrentPatient } from "@/lib/auth"
 import { getAssignments, type Assignment } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Bell, Clock, LogOut } from "lucide-react"
@@ -22,15 +22,6 @@ export default function DashboardPage() {
     } else {
       setPatient(currentPatient)
       setPsychologistOnline(isPsychologistOnline(currentPatient.id))
-
-
-      // Refresh patient data to get latest schedule
-      validateAccessCode(currentPatient.accessCode).then(updatedPatient => {
-        if (updatedPatient) {
-          setCurrentPatient(updatedPatient)
-          setPatient(updatedPatient)
-        }
-      })
 
       // Fetch Real Assignments
       getAssignments(currentPatient.accessCode).then(assignments => {

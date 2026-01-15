@@ -5,10 +5,11 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { validateAccessCode, setCurrentPatient } from "@/lib/auth"
-import { BriefcaseMedicalIcon, ArrowRight } from "lucide-react"
+import { validatePatientLogin, setCurrentPatient } from "@/lib/auth"
+import { BriefcaseMedicalIcon, ArrowRight, Mail } from "lucide-react"
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("")
   const [accessCode, setAccessCode] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -21,13 +22,13 @@ export default function LoginPage() {
 
     await new Promise((resolve) => setTimeout(resolve, 500))
 
-    const patient = await validateAccessCode(accessCode)
+    const patient = await validatePatientLogin(email, accessCode)
 
     if (patient) {
       setCurrentPatient(patient)
       router.push("/dashboard")
     } else {
-      setError("Código de acceso inválido")
+      setError("Credenciales inválidas")
       setLoading(false)
     }
   }
@@ -53,6 +54,23 @@ export default function LoginPage() {
         <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl p-8">
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-3">
+              <label htmlFor="email" className="text-sm font-medium text-foreground block">
+                Email
+              </label>
+              <div className="relative">
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-14 pl-4 border-2 focus:border-primary transition-all duration-200"
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
               <label htmlFor="accessCode" className="text-sm font-medium text-foreground block">
                 Código de acceso
               </label>
@@ -60,12 +78,10 @@ export default function LoginPage() {
                 <Input
                   id="accessCode"
                   type="text"
-                  placeholder="XXXX-XXXX"
                   value={accessCode}
                   onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
                   className="h-14 text-center text-xl font-mono tracking-widest border-2 focus:border-primary transition-all duration-200"
                   disabled={loading}
-                  autoFocus
                 />
               </div>
             </div>
@@ -80,7 +96,7 @@ export default function LoginPage() {
               type="submit"
               size="lg"
               className="w-full h-14 text-base rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-200"
-              disabled={loading || !accessCode}
+              disabled={loading || !accessCode || !email}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
