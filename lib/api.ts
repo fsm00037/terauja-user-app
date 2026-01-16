@@ -130,3 +130,16 @@ export async function getPatientStatus(): Promise<{ is_online: boolean; psycholo
         return null;
     }
 }
+
+export async function getPatientProfile(): Promise<any | null> {
+    try {
+        const res = await fetch(`${API_URL}/patient/me`, {
+            headers: { ...getAuthHeader() }
+        });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (e) {
+        console.error(e);
+        return null;
+    }
+}

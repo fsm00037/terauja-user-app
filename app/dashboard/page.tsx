@@ -24,9 +24,30 @@ export default function DashboardPage() {
       setPsychologistOnline(currentPatient.psychologistOnline || false)
 
       const fetchData = async () => {
+        // Fetch fresh assignments
         const assignments = await getAssignments(currentPatient.accessCode)
         const pending = assignments.find(a => a.status === 'active')
         if (pending) setPendingAssignment(pending)
+
+        // Fetch fresh profile data to sync therapist info
+        const freshProfile = await import("@/lib/api").then(mod => mod.getPatientProfile())
+        if (freshProfile) {
+          import("@/lib/auth").then(mod => {
+            mod.updateCurrentPatient({
+              psychologistName: freshProfile.psychologist_name,
+              psychologistSchedule: freshProfile.psychologist_schedule
+            })
+          })
+          // Update local state if changed
+          if (freshProfile.psychologist_name !== currentPatient.psychologistName ||
+            freshProfile.psychologist_schedule !== currentPatient.psychologistSchedule) {
+            setPatient(prev => prev ? ({
+              ...prev,
+              psychologistName: freshProfile.psychologist_name,
+              psychologistSchedule: freshProfile.psychologist_schedule
+            }) : null)
+          }
+        }
       }
 
       const checkStatus = async () => {

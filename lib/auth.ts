@@ -61,6 +61,14 @@ export function setCurrentPatient(patient: Patient): void {
   localStorage.setItem("patient", JSON.stringify(patient))
 }
 
+export function updateCurrentPatient(updates: Partial<Patient>): void {
+  const current = getCurrentPatient()
+  if (!current) return
+
+  const updated = { ...current, ...updates }
+  setCurrentPatient(updated)
+}
+
 import { logout as apiLogout } from "./api"
 
 export async function logout(): Promise<void> {
