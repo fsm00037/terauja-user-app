@@ -4,9 +4,10 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { validatePatientLogin, setCurrentPatient } from "@/lib/auth"
-import { BriefcaseMedicalIcon, ArrowRight, Mail } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 
 export default function LoginPage() {
   const [patientCode, setPatientCode] = useState("")
@@ -42,11 +43,18 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-primary/70 rounded-2xl shadow-lg shadow-primary/20">
-            <BriefcaseMedicalIcon className="w-10 h-10 text-primary-foreground" />
+          <div className="flex items-center justify-center mb-6">
+            <Image
+              src="/icon.svg"
+              alt="PsicolUJA Logo"
+              width={96}
+              height={96}
+              className="w-24 h-24 object-contain"
+              priority
+            />
           </div>
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">{""}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">PsicoUJA</h1>
             <p className="text-muted-foreground">Bienvenido a tu espacio </p>
           </div>
         </div>
@@ -114,16 +122,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <div className="bg-muted/30 backdrop-blur-sm border border-border/30 rounded-2xl p-4">
-          <p className="text-xs text-center text-muted-foreground">Códigos de demostración</p>
-          <div className="flex items-center justify-center gap-3 mt-2">
 
-
-            <code className="px-3 py-1.5 bg-background/80 rounded-lg font-mono text-xs font-semibold border border-border/50">
-              DEMO123
-            </code>
-          </div>
-        </div>
       </div>
     </div>
   )
