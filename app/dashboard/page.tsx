@@ -26,7 +26,14 @@ export default function DashboardPage() {
       const fetchData = async () => {
         // Fetch fresh assignments
         const assignments = await getAssignments(currentPatient.accessCode)
-        const pending = assignments.find(a => a.status === 'active')
+        const now = new Date()
+        const pending = assignments.find(a => {
+          if (a.status !== 'active') return false
+          if (a.next_scheduled_at) {
+            return now >= new Date(a.next_scheduled_at)
+          }
+          return true // Fallback for regular assignments
+        })
         if (pending) setPendingAssignment(pending)
 
         // Fetch fresh profile data to sync therapist info

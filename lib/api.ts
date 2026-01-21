@@ -13,6 +13,7 @@ export type Assignment = {
     window_start?: string;
     window_end?: string;
     deadline_hours?: number;
+    next_scheduled_at?: string;
     questionnaire: {
         id: number;
         title: string;

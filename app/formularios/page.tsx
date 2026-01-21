@@ -39,8 +39,15 @@ export default function FormPage() {
     setPatient(p)
 
     getAssignments(p.accessCode).then(all => {
-      // Filter only active assignments (not paused or completed)
-      const activeAssignments = all.filter(a => a.status === 'active')
+      // Filter only active assignments AND respect scheduling
+      const now = new Date()
+      const activeAssignments = all.filter(a => {
+        if (a.status !== 'active') return false
+        if (a.next_scheduled_at) {
+          return now >= new Date(a.next_scheduled_at)
+        }
+        return true
+      })
       setAssignments(activeAssignments)
 
       if (assignmentIdParam) {
@@ -234,8 +241,8 @@ export default function FormPage() {
                       <div
                         key={option}
                         className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${currentAnswer === option
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
-                            : "border-gray-200 hover:border-blue-300 bg-white dark:bg-card"
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
+                          : "border-gray-200 hover:border-blue-300 bg-white dark:bg-card"
                           }`}
                         onClick={() => handleAnswer(option)}
                       >
