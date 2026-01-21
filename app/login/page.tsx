@@ -9,7 +9,7 @@ import { validatePatientLogin, setCurrentPatient } from "@/lib/auth"
 import { BriefcaseMedicalIcon, ArrowRight, Mail } from "lucide-react"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
+  const [patientCode, setPatientCode] = useState("")
   const [accessCode, setAccessCode] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -22,7 +22,7 @@ export default function LoginPage() {
 
     await new Promise((resolve) => setTimeout(resolve, 500))
 
-    const patient = await validatePatientLogin(email, accessCode)
+    const patient = await validatePatientLogin(patientCode, accessCode)
 
     if (patient) {
       setCurrentPatient(patient)
@@ -54,15 +54,16 @@ export default function LoginPage() {
         <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl p-8">
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-3">
-              <label htmlFor="email" className="text-sm font-medium text-foreground block">
-                Email
+              <label htmlFor="patientCode" className="text-sm font-medium text-foreground block">
+                Número de Caso
               </label>
               <div className="relative">
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="patientCode"
+                  type="text"
+                  value={patientCode}
+                  onChange={(e) => setPatientCode(e.target.value)}
+                  placeholder="Ej. 858273"
                   className="h-14 pl-4 border-2 focus:border-primary transition-all duration-200"
                   disabled={loading}
                   autoFocus
@@ -96,7 +97,7 @@ export default function LoginPage() {
               type="submit"
               size="lg"
               className="w-full h-14 text-base rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-200"
-              disabled={loading || !accessCode || !email}
+              disabled={loading || !accessCode || !patientCode}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
