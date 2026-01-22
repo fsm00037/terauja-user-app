@@ -96,7 +96,7 @@ export default function ChatPage() {
           </div>
           <div className="flex-1">
             <h1 className="font-semibold text-sm">{patient.psychologistName}</h1>
-            <p className="text-xs text-muted-foreground">{psychologistOnline ? "En línea" : "Desconectado"}</p>
+            <p className="text-xs text-muted-foreground">{psychologistOnline ? "Conectado" : "Desconectado"}</p>
           </div>
         </div>
       </div>

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { ArrowLeft, CheckCircle, Clock, AlertCircle, Calendar, TrendingUp, Sparkles, ChevronRight, FileText, Check } from "lucide-react"
+import { ArrowLeft, CheckCircle, Sparkles, ChevronRight, FileText, Check } from "lucide-react"
 import Link from "next/link"
 import { getAssignments, submitAssignment, type Assignment } from "@/lib/api"
 import { BottomNav } from "@/components/bottom-nav"
@@ -237,7 +237,7 @@ export default function FormPage() {
                     onValueChange={handleAnswer}
                     className="space-y-3"
                   >
-                    {(question.options || ["Nunca", "Raramente", "A veces", "Frecuentemente", "Siempre"]).map((option) => (
+                    {(question.options as string[]).map((option: string) => (
                       <div
                         key={option}
                         className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${currentAnswer === option
