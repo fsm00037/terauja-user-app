@@ -139,7 +139,7 @@ export default function DashboardPage() {
                   className={`w-2 h-2 rounded-full ${psychologistOnline ? "bg-green-500 animate-pulse" : "bg-muted-foreground/50"}`}
                 />
                 <span className="text-xs font-medium text-foreground">
-                  {psychologistOnline ? "En línea" : "Offline"}
+                  {psychologistOnline ? "Conectado" : "Desconectado"}
                 </span>
               </div>
             </div>
