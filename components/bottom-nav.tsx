@@ -3,7 +3,7 @@
 import { MessageSquare, ClipboardList, Home } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { getMessages, getAssignments } from "@/lib/api"
+import { getMessages, getPendingAssignments } from "@/lib/api"
 import { useEffect, useState } from "react"
 import { getCurrentPatient } from "@/lib/auth"
 
@@ -33,9 +33,9 @@ export function BottomNav() {
         }
 
         // Check assignments
-        const assignments = await getAssignments(currentPatient.accessCode);
-        const hasActiveAssignments = assignments.some(a => a.status === 'active' || a.status === 'paused');
-        setShowFormNotification(hasActiveAssignments);
+        const completions = await getPendingAssignments();
+        const hasPendingForms = completions.some(c => c.status === 'sent');
+        setShowFormNotification(hasPendingForms);
       };
 
       checkData();

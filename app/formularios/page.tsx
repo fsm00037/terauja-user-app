@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ArrowLeft, CheckCircle, Clock, AlertCircle, Calendar, TrendingUp, Sparkles, ChevronRight, FileText, Check } from "lucide-react"
 import Link from "next/link"
-import { getAssignments, submitAssignment, type Assignment } from "@/lib/api"
+import { getPendingAssignments, submitAssignment, type QuestionnaireCompletion } from "@/lib/api"
 import { BottomNav } from "@/components/bottom-nav"
 
 export default function FormPage() {
@@ -20,15 +20,24 @@ export default function FormPage() {
   const assignmentIdParam = searchParams.get("assignmentId")
 
   const [patient, setPatient] = useState<Patient | null>(null)
-  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [pendingCompletions, setPendingCompletions] = useState<QuestionnaireCompletion[]>([])
+  const [completedList, setCompletedList] = useState<QuestionnaireCompletion[]>([])
 
   // State for Form Execution
-  const [currentAssignment, setCurrentAssignment] = useState<Assignment | null>(null)
+  const [currentCompletion, setCurrentCompletion] = useState<QuestionnaireCompletion | null>(null)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, any>>({})
   const [submitting, setSubmitting] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  // Timer for countdown
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000) // Update every minute
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     const p = getCurrentPatient()
@@ -38,20 +47,15 @@ export default function FormPage() {
     }
     setPatient(p)
 
-    getAssignments(p.accessCode).then(all => {
-      // Filter only active assignments AND respect scheduling
-      const now = new Date()
-      const activeAssignments = all.filter(a => {
-        if (a.status !== 'active') return false
-        if (a.next_scheduled_at) {
-          return now >= new Date(a.next_scheduled_at)
-        }
-        return true
-      })
-      setAssignments(activeAssignments)
+    getPendingAssignments().then(completions => {
+      // Separate pending (sent) and completed
+      const pending = completions.filter(c => c.status === 'sent')
+      const completed = completions.filter(c => c.status === 'completed')
+      setPendingCompletions(pending)
+      setCompletedList(completed)
 
       if (assignmentIdParam) {
-        const found = activeAssignments.find(a => a.id.toString() === assignmentIdParam)
+        const found = pending.find(c => c.assignment_id.toString() === assignmentIdParam)
         if (found) {
           startForm(found)
         }
@@ -60,8 +64,8 @@ export default function FormPage() {
     })
   }, [assignmentIdParam, router])
 
-  const startForm = (assignment: Assignment) => {
-    setCurrentAssignment(assignment)
+  const startForm = (completion: QuestionnaireCompletion) => {
+    setCurrentCompletion(completion)
     setCurrentQuestionIndex(0)
     setAnswers({})
     setCompleted(false)
@@ -72,8 +76,8 @@ export default function FormPage() {
   }
 
   const handleNext = () => {
-    if (!currentAssignment) return
-    const questions = currentAssignment.questionnaire.questions
+    if (!currentCompletion) return
+    const questions = currentCompletion.questionnaire.questions || []
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1)
     } else {
@@ -88,16 +92,17 @@ export default function FormPage() {
   }
 
   const handleSubmit = async () => {
-    if (!currentAssignment) return
+    if (!currentCompletion) return
     setSubmitting(true)
 
-    const answersList = currentAssignment.questionnaire.questions.map((q, idx) => ({
+    const questions = currentCompletion.questionnaire.questions || []
+    const answersList = questions.map((q, idx) => ({
       question_index: idx,
       question_text: q.text,
       answer: answers[idx]
     }))
 
-    const success = await submitAssignment(currentAssignment.id, answersList)
+    const success = await submitAssignment(currentCompletion.assignment_id, answersList)
 
     if (success) {
       setCompleted(true)
@@ -115,8 +120,37 @@ export default function FormPage() {
     return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>
   }
 
+
+
+  const getStatusInfo = (scheduledAt: string, deadlineHours: number = 24) => {
+    const start = new Date(scheduledAt)
+    const deadline = new Date(start.getTime() + deadlineHours * 60 * 60 * 1000)
+    const diff = deadline.getTime() - currentTime.getTime()
+
+    if (diff <= 0) {
+      return {
+        isLate: true,
+        text: "Fuera de plazo",
+        color: "text-red-600 dark:text-red-400",
+        bgColor: "bg-red-100 dark:bg-red-900/30",
+        icon: AlertCircle
+      }
+    }
+
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    return {
+      isLate: false,
+      text: `${hours}h ${minutes}m restantes`,
+      color: "text-amber-600 dark:text-amber-400",
+      bgColor: "bg-amber-100 dark:bg-amber-900/30",
+      icon: Clock
+    }
+  }
+
   // --- SUCCESS VIEW ---
   if (completed) {
+    // ... (unchanged success view) ...
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-background dark:via-background dark:to-background flex items-center justify-center p-4 pb-24">
         <Card className="w-full max-w-md border-none shadow-2xl bg-white/80 dark:bg-card backdrop-blur">
@@ -138,7 +172,7 @@ export default function FormPage() {
             <Button
               onClick={() => {
                 setCompleted(false);
-                setCurrentAssignment(null);
+                setCurrentCompletion(null);
                 router.push('/dashboard')
               }}
               className="w-full h-12 text-base font-semibold"
@@ -154,12 +188,14 @@ export default function FormPage() {
   }
 
   // --- FORM EXECUTION VIEW ---
-  if (currentAssignment) {
-    const questions = currentAssignment.questionnaire.questions || []
+  if (currentCompletion) {
+    const questions = currentCompletion.questionnaire.questions || []
     const question = questions[currentQuestionIndex]
     const currentAnswer = answers[currentQuestionIndex]
     const canProceed = currentAnswer !== undefined && currentAnswer !== ""
     const progress = ((currentQuestionIndex + 1) / questions.length) * 100
+
+    const statusInfo = getStatusInfo(currentCompletion.scheduled_at, currentCompletion.deadline_hours)
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-background dark:via-background dark:to-background flex flex-col">
@@ -169,16 +205,21 @@ export default function FormPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setCurrentAssignment(null)}
+                onClick={() => setCurrentCompletion(null)}
                 className="rounded-full hover:bg-white/50 dark:hover:bg-card h-8 w-8"
               >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <div className="flex-1">
-                <h1 className="text-base font-bold">{currentAssignment.questionnaire.title}</h1>
-                <p className="text-xs text-muted-foreground">
-                  Paso {currentQuestionIndex + 1} de {questions.length}
-                </p>
+                <h1 className="text-base font-bold">{currentCompletion.questionnaire.title}</h1>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    Paso {currentQuestionIndex + 1} de {questions.length}
+                  </p>
+                  {statusInfo.isLate && (
+                    <span className="text-[10px] bg-red-100 text-red-600 px-1.5 rounded-sm font-medium">Fuera de plazo</span>
+                  )}
+                </div>
               </div>
               <div className="text-right">
                 <div className="text-xl font-bold text-primary">{Math.round(progress)}%</div>
@@ -224,8 +265,8 @@ export default function FormPage() {
                       className="w-full"
                     />
                     <div className="flex justify-between text-xs font-medium px-1">
-                      <span className="text-blue-500">Mínimo</span>
-                      <span className="text-indigo-500">Máximo</span>
+                      <span className="text-blue-500">{question.minLabel || "Mínimo"}</span>
+                      <span className="text-indigo-500">{question.maxLabel || "Máximo"}</span>
                     </div>
                   </div>
                 )}
@@ -237,7 +278,7 @@ export default function FormPage() {
                     onValueChange={handleAnswer}
                     className="space-y-3"
                   >
-                    {(question.options || ["Nunca", "Raramente", "A veces", "Frecuentemente", "Siempre"]).map((option) => (
+                    {(question.options || ["Nunca", "Raramente", "A veces", "Frecuentemente", "Siempre"]).map((option: string) => (
                       <div
                         key={option}
                         className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${currentAnswer === option
@@ -299,9 +340,6 @@ export default function FormPage() {
   }
 
   // --- LIST VIEW (DASHBOARD) ---
-  const pendingWithQ = assignments.filter(a => a.status === 'active' && a.questionnaire)
-  const completedList = assignments.filter(a => a.status === 'completed')
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-background dark:via-background dark:to-background pb-24">
       <div className="container max-w-2xl mx-auto p-4 space-y-6">
@@ -312,13 +350,21 @@ export default function FormPage() {
           <p className="text-sm text-muted-foreground">Tareas pendientes y historial de evaluaciones</p>
         </div>
 
+        {/* Info Alert */}
+        <div className="bg-blue-50/80 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900 rounded-xl p-4 flex gap-3 text-sm text-blue-700 dark:text-blue-300">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <p className="leading-snug">
+            Es importante responder a los cuestionarios dentro del plazo asignado para un mejor seguimiento.
+          </p>
+        </div>
+
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-indigo-500" />
             <h2 className="text-lg font-bold text-foreground">Pendientes</h2>
           </div>
 
-          {pendingWithQ.length === 0 ? (
+          {pendingCompletions.length === 0 ? (
             <Card className="border-dashed border-2 bg-white/50 dark:bg-card/50 shadow-none">
               <CardContent className="pt-6 pb-6 text-center text-muted-foreground">
                 No tienes formularios pendientes.
@@ -326,32 +372,40 @@ export default function FormPage() {
             </Card>
           ) : (
             <div className="grid gap-3">
-              {pendingWithQ.map(a => (
-                <div key={a.id} onClick={() => startForm(a)} className="cursor-pointer">
-                  <Card className="border-none shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-blue-50/50 dark:from-card dark:to-card overflow-hidden group">
-                    <CardContent className="p-0">
-                      <div className="p-5 flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                          <FileText className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0 pt-0.5">
-                          <h3 className="font-bold text-lg text-foreground group-hover:text-blue-600 transition-colors">{a.questionnaire.title}</h3>
-                          <p className="text-sm text-muted-foreground line-clamp-1">{a.questionnaire.description}</p>
-                        </div>
-                        <div className="self-center">
-                          <div className="w-8 h-8 rounded-full bg-white dark:bg-white/10 flex items-center justify-center shadow-sm">
-                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              {pendingCompletions.map(completion => {
+                const status = getStatusInfo(completion.scheduled_at, completion.deadline_hours)
+                return (
+                  <div key={completion.id} onClick={() => startForm(completion)} className="cursor-pointer">
+                    <Card className="border-none shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-blue-50/50 dark:from-card dark:to-card overflow-hidden group">
+                      <CardContent className="p-0">
+                        <div className="p-5 flex items-start gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            <FileText className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0 pt-0.5">
+                            <h3 className="font-bold text-lg text-foreground group-hover:text-blue-600 transition-colors">{completion.questionnaire.title}</h3>
+                            <p className="text-sm text-muted-foreground line-clamp-1">{completion.questionnaire.description}</p>
+                          </div>
+                          <div className="self-center">
+                            <div className="w-8 h-8 rounded-full bg-white dark:bg-white/10 flex items-center justify-center shadow-sm">
+                              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="px-5 py-3 bg-white/50 dark:bg-black/5 border-t border-blue-100/50 dark:border-white/5 flex items-center justify-between text-xs font-medium">
-                        <span className="text-blue-600 dark:text-blue-400">Disponible ahora</span>
-                        <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">Nuevo</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
+                        <div className="px-5 py-3 bg-white/50 dark:bg-black/5 border-t border-blue-100/50 dark:border-white/5 flex items-center justify-between text-xs font-medium">
+                          <div className={`flex items-center gap-1.5 ${status.color}`}>
+                            <status.icon className="w-3.5 h-3.5" />
+                            <span>{status.text}</span>
+                          </div>
+                          <span className={`${status.bgColor} ${status.color} px-2 py-0.5 rounded-full`}>
+                            {status.isLate ? "Tardío" : "Nuevo"}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
@@ -363,14 +417,14 @@ export default function FormPage() {
               <h2 className="text-lg font-bold text-foreground">Completados</h2>
             </div>
             <div className="space-y-3">
-              {completedList.map(a => (
-                <Card key={a.id} className="border-none shadow-sm bg-white/60 dark:bg-card/60 backdrop-blur">
+              {completedList.map(completion => (
+                <Card key={completion.id} className="border-none shadow-sm bg-white/60 dark:bg-card/60 backdrop-blur">
                   <CardContent className="p-4 flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
                       <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground/80">{a.questionnaire.title}</h3>
+                      <h3 className="font-semibold text-foreground/80">{completion.questionnaire.title}</h3>
                       <p className="text-xs text-muted-foreground">Enviado</p>
                     </div>
                   </CardContent>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getCurrentPatient, type Patient, logout } from "@/lib/auth"
-import { getAssignments, type Assignment } from "@/lib/api"
+import { getPendingAssignments, type QuestionnaireCompletion } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Bell, Clock, LogOut } from "lucide-react"
 import Link from "next/link"
@@ -11,7 +11,7 @@ import { BottomNav } from "@/components/bottom-nav"
 
 export default function DashboardPage() {
   const [patient, setPatient] = useState<Patient | null>(null)
-  const [pendingAssignment, setPendingAssignment] = useState<Assignment | null>(null)
+  const [pendingCompletions, setPendingCompletions] = useState<QuestionnaireCompletion[]>([])
   const [psychologistOnline, setPsychologistOnline] = useState(false)
   const router = useRouter()
 
@@ -23,18 +23,14 @@ export default function DashboardPage() {
       setPatient(currentPatient)
       setPsychologistOnline(currentPatient.psychologistOnline || false)
 
+      const fetchAssignments = async () => {
+        const pending = await getPendingAssignments()
+        setPendingCompletions(pending)
+      }
+
       const fetchData = async () => {
         // Fetch fresh assignments
-        const assignments = await getAssignments(currentPatient.accessCode)
-        const now = new Date()
-        const pending = assignments.find(a => {
-          if (a.status !== 'active') return false
-          if (a.next_scheduled_at) {
-            return now >= new Date(a.next_scheduled_at)
-          }
-          return true // Fallback for regular assignments
-        })
-        if (pending) setPendingAssignment(pending)
+        await fetchAssignments()
 
         // Fetch fresh profile data to sync therapist info
         const freshProfile = await import("@/lib/api").then(mod => mod.getPatientProfile())
@@ -69,6 +65,7 @@ export default function DashboardPage() {
 
       const interval = setInterval(() => {
         checkStatus()
+        fetchAssignments()
       }, 5000)
 
       return () => clearInterval(interval)
@@ -115,22 +112,23 @@ export default function DashboardPage() {
       </header>
 
       <div className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {pendingAssignment && (
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-4 shadow-sm">
+        {pendingCompletions.map(completion => (
+          <div key={completion.id} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-4 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Bell className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-foreground">Nueva Tarea Disponible</p>
-                <p className="text-sm text-muted-foreground mt-0.5">{pendingAssignment.questionnaire.title}</p>
+                <p className="text-sm text-muted-foreground mt-0.5">{completion.questionnaire.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Programado: {new Date(completion.scheduled_at).toLocaleString()}</p>
               </div>
               <Button asChild size="sm" className="rounded-xl flex-shrink-0">
-                <Link href={`/formularios?assignmentId=${pendingAssignment.id}`}>Abrir</Link>
+                <Link href={`/formularios?assignmentId=${completion.assignment_id}`}>Abrir</Link>
               </Button>
             </div>
           </div>
-        )}
+        ))}
 
         <div className="rounded-2xl bg-card border border-border/50 shadow-sm overflow-hidden">
           <div className="bg-gradient-to-br from-primary/5 to-secondary/5 p-6 border-b border-border/50">

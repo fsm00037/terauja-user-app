@@ -28,9 +28,38 @@ function getAuthHeader(): Record<string, string> {
     return patient?.token ? { 'Authorization': `Bearer ${patient.token}` } : {};
 }
 
+export interface QuestionnaireCompletion {
+    id: number;
+    assignment_id: number;
+    patient_id: number;
+    questionnaire_id: number;
+    status: 'pending' | 'completed' | 'missed' | 'sent';
+    scheduled_at: string;
+    deadline_hours?: number;
+    questionnaire: {
+        title: string;
+        icon: string;
+        description?: string;
+        questions?: any[];
+    };
+}
+
 export async function getAssignments(accessCode: string): Promise<Assignment[]> {
     try {
         const res = await fetch(`${API_URL}/assignments/patient/${accessCode}`, {
+            headers: { ...getAuthHeader() }
+        });
+        if (!res.ok) return [];
+        return await res.json();
+    } catch (e) {
+        console.error(e);
+        return [];
+    }
+}
+
+export async function getPendingAssignments(): Promise<QuestionnaireCompletion[]> {
+    try {
+        const res = await fetch(`${API_URL}/assignments/my-pending`, {
             headers: { ...getAuthHeader() }
         });
         if (!res.ok) return [];

@@ -6,10 +6,12 @@ import './globals.css'
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
+import { NotificationManager } from "@/components/notification-manager"
+
 export const metadata: Metadata = {
-  title: 'Psicouja-user',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: 'Psicouja user',
+  description: 'Aplicación para pacientes de Psicosuja',
+  manifest: '/manifest.json',
   icons: {
     icon: [
       {
@@ -37,6 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
+        <NotificationManager />
         {children}
         <Analytics />
       </body>
