@@ -96,7 +96,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Bienvenido</p>
-                <h1 className="font-semibold text-foreground leading-tight">Paciente {patient.patientCode}</h1>
+                <h1 className="font-semibold text-foreground leading-tight">Usuario {patient.patientCode}</h1>
               </div>
             </div>
             <Button
@@ -158,7 +158,6 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-lg text-foreground">{patient.psychologistName}</h3>
-                <p className="text-sm text-muted-foreground">{patient.psychologistSchedule || "Disponible"}</p>
               </div>
             </div>
           </div>

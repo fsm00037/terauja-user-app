@@ -123,7 +123,10 @@ export default function ChatPage() {
                     className={`text-[10px] mb-1 whitespace-nowrap ${!isFromPatient ? "text-muted-foreground" : "text-muted-foreground"
                       }`}
                   >
-                    {new Date(message.created_at).toLocaleTimeString("es-ES", {
+                    {new Date(message.created_at + "Z").toLocaleString("es-ES", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
