@@ -86,8 +86,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/40">
+    <div className="min-h-screen bg-background pb-24 flex flex-col">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/40 flex-none">
         <div className="container max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -111,9 +111,9 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <div className="container max-w-2xl mx-auto px-4 py-6 space-y-6 flex-1 flex flex-col">
         {pendingCompletions.map(completion => (
-          <div key={completion.id} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-4 shadow-sm">
+          <div key={completion.id} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-4 shadow-sm flex-none">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Bell className="w-5 h-5 text-primary" />
@@ -130,7 +130,7 @@ export default function DashboardPage() {
           </div>
         ))}
 
-        <div className="rounded-2xl bg-card border border-border/50 shadow-sm overflow-hidden">
+        <div className="rounded-2xl bg-card border border-border/50 shadow-sm overflow-hidden flex-none">
           <div className="bg-gradient-to-br from-primary/5 to-secondary/5 p-6 border-b border-border/50">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Tu Terapeuta</h2>
@@ -175,9 +175,17 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+        <div className="rounded-2xl bg-muted/30 border border-border/20 p-4 text-center mx-4 mb-6 mt-auto">
+          <p className="text-xs text-muted-foreground">
+            Si hay alguna duda o problema con la aplicación, ponerse en contacto con María{" "}
+            <a href="mailto:mpe00009@red.ujaen.es" className="text-primary font-medium hover:underline">
+              mpe00009@red.ujaen.es
+            </a>
+          </p>
+        </div>
       </div>
 
       <BottomNav />
-    </div>
+    </div >
   )
 }
