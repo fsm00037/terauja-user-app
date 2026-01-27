@@ -112,7 +112,7 @@ export default function ChatPage() {
         <div className="max-w-2xl mx-auto flex flex-col gap-4 pb-2 min-h-full justify-end">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground text-sm my-10 opacity-60">
-              No hay mensajes aún. Escribe el primero.
+              Los mensajes se limpiarán cuando el psicólogo termine la sesión.
             </div>
           )}
           {messages.map((message, index) => {
