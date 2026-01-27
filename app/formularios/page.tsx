@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getCurrentPatient, type Patient } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ import { ArrowLeft, CheckCircle, Sparkles, ChevronRight, FileText, Check, AlertC
 import { getPendingAssignments, submitAssignment, type QuestionnaireCompletion } from "@/lib/api"
 import { BottomNav } from "@/components/bottom-nav"
 
-export default function FormPage() {
+function FormContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const assignmentIdParam = searchParams.get("assignmentId")
@@ -435,5 +435,13 @@ export default function FormPage() {
       </div>
       <BottomNav />
     </div>
+  )
+}
+
+export default function FormPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>}>
+      <FormContent />
+    </Suspense>
   )
 }
