@@ -346,14 +346,14 @@ export default function FormPage() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             Mis Formularios
           </h1>
-          <p className="text-sm text-muted-foreground">Tareas pendientes y historial de evaluaciones</p>
+          <p className="text-sm text-muted-foreground">Formularios pendientes</p>
         </div>
 
         {/* Info Alert */}
         <div className="bg-blue-50/80 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900 rounded-xl p-4 flex gap-3 text-sm text-blue-700 dark:text-blue-300">
           <AlertCircle className="w-5 h-5 shrink-0" />
           <p className="leading-snug">
-            Es importante responder a los cuestionarios dentro del plazo asignado para un mejor seguimiento.
+            Es importante responder a los formularios dentro del plazo asignado para un mejor seguimiento.
           </p>
         </div>
 
@@ -366,7 +366,7 @@ export default function FormPage() {
           {pendingCompletions.length === 0 ? (
             <Card className="border-dashed border-2 bg-white/50 dark:bg-card/50 shadow-none">
               <CardContent className="pt-6 pb-6 text-center text-muted-foreground">
-                No tienes formularios pendientes.
+                No tienes cuestionarios pendientes.
               </CardContent>
             </Card>
           ) : (
