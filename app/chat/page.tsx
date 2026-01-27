@@ -118,6 +118,7 @@ export default function ChatPage() {
           {messages.map((message, index) => {
             const isFromPatient = message.is_from_patient
             const showAvatar = !isFromPatient && (index === 0 || messages[index - 1].is_from_patient)
+            const isLong = message.content.length > 100
 
             return (
               <div
@@ -130,18 +131,19 @@ export default function ChatPage() {
                 <div
                   className={cn(
                     "flex flex-col max-w-[80%]",
-                    isFromPatient ? "items-end" : "items-start"
+                    isFromPatient ? "items-end" : "items-start",
+                    isLong && "w-full"
                   )}
                 >
                   <div
                     className={cn(
-                      "px-4 py-2.5 shadow-sm text-[15px] leading-relaxed break-words",
+                      "px-4 py-2.5 shadow-sm text-[15px] leading-relaxed break-words w-full",
                       isFromPatient
                         ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm"
                         : "bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-tl-sm"
                     )}
                   >
-                    {message.content}
+                    <ExpandableMessage content={message.content} />
                   </div>
                   <span className="text-[10px] text-muted-foreground mt-1 px-1">
                     {new Date(message.created_at + "Z").toLocaleString("es-ES", {
@@ -182,6 +184,29 @@ export default function ChatPage() {
       </div>
 
       <BottomNav />
+    </div>
+  )
+}
+
+function ExpandableMessage({ content }: { content: string }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const maxLength = 300 // Character limit
+
+  if (content.length <= maxLength) {
+    return <p className="text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
+  }
+
+  return (
+    <div>
+      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+        {isExpanded ? content : `${content.slice(0, maxLength)}...`}
+      </p>
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="text-xs font-medium underline mt-1 opacity-80 hover:opacity-100 focus:outline-none"
+      >
+        {isExpanded ? "Leer menos" : "Leer más"}
+      </button>
     </div>
   )
 }
