@@ -432,6 +432,14 @@ function FormContent() {
             </div>
           </div>
         )}
+
+        {/* Info Alert */}
+        <div className="bg-blue-50/80 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900 rounded-xl p-4 flex gap-3 text-sm text-blue-700 dark:text-blue-300">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <p className="leading-snug">
+            Es importante responder a los cuestionarios dentro del plazo asignado para un mejor seguimiento.
+          </p>
+        </div>
       </div>
       <BottomNav />
     </div>

@@ -44,13 +44,29 @@ export interface QuestionnaireCompletion {
     };
 }
 
+const ensureUTC = (dateStr: string) => {
+    if (!dateStr) return dateStr;
+    // If it doesn't end with Z and doesn't have an offset (like +01:00), append Z
+    if (!dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(dateStr)) {
+        return `${dateStr}Z`;
+    }
+    return dateStr;
+};
+
 export async function getAssignments(accessCode: string): Promise<Assignment[]> {
     try {
         const res = await fetch(`${API_URL}/assignments/patient/${accessCode}`, {
             headers: { ...getAuthHeader() }
         });
         if (!res.ok) return [];
-        return await res.json();
+        const data = await res.json();
+        return data.map((a: any) => ({
+            ...a,
+            assigned_at: ensureUTC(a.assigned_at),
+            window_start: ensureUTC(a.window_start),
+            window_end: ensureUTC(a.window_end),
+            next_scheduled_at: ensureUTC(a.next_scheduled_at)
+        }));
     } catch (e) {
         console.error(e);
         return [];
@@ -63,7 +79,11 @@ export async function getPendingAssignments(): Promise<QuestionnaireCompletion[]
             headers: { ...getAuthHeader() }
         });
         if (!res.ok) return [];
-        return await res.json();
+        const data = await res.json();
+        return data.map((c: any) => ({
+            ...c,
+            scheduled_at: ensureUTC(c.scheduled_at)
+        }));
     } catch (e) {
         console.error(e);
         return [];

@@ -121,7 +121,7 @@ export default function DashboardPage() {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-foreground">Nueva Tarea Disponible</p>
                 <p className="text-sm text-muted-foreground mt-0.5">{completion.questionnaire.title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Programado: {new Date(completion.scheduled_at).toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Programado: {new Date(completion.scheduled_at).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
               </div>
               <Button asChild size="sm" className="rounded-xl flex-shrink-0">
                 <Link href={`/formularios?assignmentId=${completion.assignment_id}`}>Abrir</Link>
