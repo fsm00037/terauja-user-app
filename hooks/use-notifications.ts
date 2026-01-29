@@ -6,18 +6,8 @@ export function useNotifications() {
     const [permission, setPermission] = useState<NotificationPermission>('default')
 
     useEffect(() => {
-        // 1. Register Service Worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(registration => {
-                    console.log('Service Worker registered with scope:', registration.scope);
-                })
-                .catch(error => {
-                    console.error('Service Worker registration failed:', error);
-                });
-        }
-
-        // 2. Check Permission
+        // Service worker registration is now handled by Firebase in notification-manager.tsx
+        // Just check permission status on mount
         if ('Notification' in window) {
             setPermission(Notification.permission)
         }
@@ -34,7 +24,7 @@ export function useNotifications() {
 
     const sendNotification = (title: string, options?: NotificationOptions) => {
         if (permission === 'granted') {
-            // Use Service Worker registration to show notification if available (better on mobile for some cases)
+            // Use Service Worker registration to show notification if available
             navigator.serviceWorker.ready.then(registration => {
                 registration.showNotification(title, options)
             })

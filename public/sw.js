@@ -1,9 +1,9 @@
 self.addEventListener('install', (event) => {
-    console.log('Service Worker installing.');
+    // console.log('Service Worker installing.');
 });
 
 self.addEventListener('activate', (event) => {
-    console.log('Service Worker activating.');
+    // console.log('Service Worker activating.');
 });
 
 // A fetch handler is required for the browser to consider the app installable (PWA criteria)
@@ -13,7 +13,7 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('notificationclick', function (event) {
-    console.log('Notification clicked.');
+    // console.log('Notification clicked.');
     event.notification.close();
 
     event.waitUntil(
