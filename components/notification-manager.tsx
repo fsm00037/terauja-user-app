@@ -54,6 +54,9 @@ export function NotificationManager() {
                 }
             } catch (error) {
                 console.error("[NotificationManager] Error initializing FCM:", error)
+                toast.error("Error al activar notificaciones", {
+                    description: "Por favor recarga la página o revisa los permisos de notificación."
+                })
             }
         }
 

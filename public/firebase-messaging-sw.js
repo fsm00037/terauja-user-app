@@ -69,33 +69,48 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 // Handle push events (fallback if onBackgroundMessage doesn't fire)
+// Handle push events (fallback if onBackgroundMessage doesn't fire)
 self.addEventListener('push', (event) => {
     // console.log('[firebase-messaging-sw.js] Push event received:', event);
-
 
     if (!event.data) {
         return;
     }
 
+    let notificationTitle = 'Nueva Notificación';
+    let notificationOptions = {
+        body: 'Tienes una nueva notificación.',
+        icon: '/icon.svg',
+        badge: '/icon.svg',
+        tag: 'default',
+        requireInteraction: true
+    };
+
     try {
+        // Try parsing JSON first (Firebase structure)
         const data = event.data.json();
 
-        // Only show notification if it wasn't already handled by FCM
         if (data.notification) {
-            const options = {
-                body: data.notification.body || '',
-                icon: '/icon.svg',
-                badge: '/icon.svg',
-                data: data.data || {}
-            };
-
-            event.waitUntil(
-                self.registration.showNotification(data.notification.title || 'Notificación', options)
-            );
+            notificationTitle = data.notification.title || notificationTitle;
+            notificationOptions.body = data.notification.body || notificationOptions.body;
+            notificationOptions.data = data.data || {};
+        } else if (data.data) {
+            // Data-only message
+            notificationTitle = data.data.title || notificationTitle;
+            notificationOptions.body = data.data.body || notificationOptions.body;
+            notificationOptions.data = data.data;
         }
     } catch (e) {
-        console.error('[firebase-messaging-sw.js] Error parsing push data:', e);
+        // Fallback for non-JSON payloads (e.g. testing from DevTools with plain text)
+        const text = event.data.text();
+        if (text) {
+            notificationOptions.body = text;
+        }
     }
+
+    event.waitUntil(
+        self.registration.showNotification(notificationTitle, notificationOptions)
+    );
 });
 
 // console.log('[firebase-messaging-sw.js] Firebase Messaging Service Worker loaded');
