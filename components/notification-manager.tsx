@@ -1,25 +1,87 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { useNotifications } from "@/hooks/use-notifications"
 import { getCurrentPatient } from "@/lib/auth"
-import { getPendingAssignments, type QuestionnaireCompletion, getMessages } from "@/lib/api"
+import { getPendingAssignments, type QuestionnaireCompletion, getMessages, registerFCMToken, testPushNotification } from "@/lib/api"
+import { requestFCMToken, onForegroundMessage, initializeFirebaseApp } from "@/lib/firebase"
+import { toast } from "sonner"
 
 export function NotificationManager() {
-    const { requestPermission, sendNotification, permission } = useNotifications()
+    const [permission, setPermission] = useState<NotificationPermission>('default')
+    const [fcmToken, setFcmToken] = useState<string | null>(null)
     const [knownIds, setKnownIds] = useState<Set<number>>(new Set())
     const [knownMessageIds, setKnownMessageIds] = useState<Set<number>>(new Set())
     const initRef = useRef(false)
+    const fcmInitRef = useRef(false)
 
+    // Initialize Firebase and request FCM token
     useEffect(() => {
-        // Only run on client side and if user is logged in
         const patient = getCurrentPatient()
+        // console.log("[NotificationManager] Patient:", patient?.id || "no patient")
         if (!patient) return
 
-        // Request permission immediately if not granted/denied
-        if (permission === 'default') {
-            requestPermission()
+        // Only run once
+        if (fcmInitRef.current) {
+            // console.log("[NotificationManager] Already initialized, skipping")
+            return
         }
+        fcmInitRef.current = true
+
+        const initFCM = async () => {
+            try {
+                // console.log("[NotificationManager] Starting FCM initialization...")
+
+                // Initialize Firebase
+                const app = initializeFirebaseApp()
+                // console.log("[NotificationManager] Firebase app:", app ? "initialized" : "null")
+
+                // Request permission and get FCM token
+                // console.log("[NotificationManager] Requesting FCM token...")
+                const token = await requestFCMToken()
+                // console.log("[NotificationManager] Token result:", token ? token.substring(0, 30) + "..." : "null")
+
+                if (token) {
+                    setFcmToken(token)
+                    setPermission('granted')
+
+                    // Register token with backend
+                    // console.log("[NotificationManager] Registering token with backend...")
+                    const registered = await registerFCMToken(token)
+                    // console.log("[NotificationManager] Token registration result:", registered)
+                } else {
+                    // console.log("[NotificationManager] No token received, permission:", Notification.permission)
+                    setPermission(Notification.permission)
+                }
+            } catch (error) {
+                console.error("[NotificationManager] Error initializing FCM:", error)
+                toast.error("Error al activar notificaciones", {
+                    description: "Por favor recarga la página o revisa los permisos de notificación."
+                })
+            }
+        }
+
+        initFCM()
+
+        // Set up foreground message handling
+        const unsubscribe = onForegroundMessage((payload) => {
+            // Show toast for foreground messages
+            toast(payload.title || "Nueva Notificación", {
+                description: payload.body,
+            })
+        })
+
+        return () => {
+            if (unsubscribe) {
+                unsubscribe()
+            }
+        }
+    }, [])
+
+
+    // Polling for assignments and messages (fallback for local notifications)
+    useEffect(() => {
+        const patient = getCurrentPatient()
+        if (!patient) return
 
         const checkUpdates = async () => {
             try {
@@ -27,7 +89,6 @@ export function NotificationManager() {
                 const pending = await getPendingAssignments()
 
                 // 2. Check Messages
-                // We assume patient.id is available. If not, we can't fetch messages.
                 const messages = patient.id ? await getMessages(patient.id) : []
                 const incomingMessages = messages.filter(m => !m.is_from_patient)
 
@@ -49,10 +110,9 @@ export function NotificationManager() {
 
                 if (addedIds.length > 0) {
                     addedIds.forEach(assignment => {
-                        sendNotification("Nueva Tarea Disponible", {
-                            body: `Tienes un nuevo cuestionario pendiente: ${assignment.questionnaire.title}`,
-                            icon: "/icon.svg",
-                            tag: `assignment-${assignment.id}`
+                        // Show toast for foreground (push notification handles background)
+                        toast("Nueva Tarea Disponible", {
+                            description: `Tienes un nuevo cuestionario pendiente: ${assignment.questionnaire.title}`,
                         })
                     })
                 }
@@ -66,11 +126,9 @@ export function NotificationManager() {
                 const addedMessages = incomingMessages.filter(m => !knownMessageIds.has(m.id))
 
                 if (addedMessages.length > 0) {
-                    addedMessages.forEach(msg => {
-                        sendNotification("Nuevo Mensaje", {
-                            body: "Tienes un nuevo mensaje de tu psicólogo",
-                            icon: "/icon.svg",
-                            tag: `message-${msg.id}`
+                    addedMessages.forEach(() => {
+                        toast("Nuevo Mensaje", {
+                            description: "Tienes un nuevo mensaje de tu psicólogo",
                         })
                     })
                 }
@@ -91,19 +149,27 @@ export function NotificationManager() {
         const interval = setInterval(checkUpdates, 60000)
 
         return () => clearInterval(interval)
-    }, [permission, knownIds, knownMessageIds, requestPermission, sendNotification])
+    }, [knownIds, knownMessageIds])
+
+    // Test notification button (only in development or for debugging)
+    const handleTestNotification = async () => {
+        const result = await testPushNotification()
+        if (result) {
+            toast.success("Notificación de prueba enviada")
+        } else {
+            toast.error("Error al enviar notificación de prueba")
+        }
+    }
 
     // Render a small test button for development/testing
-    return (
-        <button
-            onClick={() => sendNotification("Notificación de Prueba", {
-                body: "Esta es una notificación de prueba para verificar el sistema.",
-                icon: "/icon.svg"
-            })}
-            className="fixed bottom-4 right-4 z-50 bg-blue-500 text-white px-4 py-2 rounded-full text-xs shadow-lg opacity-80 hover:opacity-100 transition-opacity"
-            style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 9999 }}
-        >
-            Test Notificación
-        </button>
-    )
+    return null
+    // (
+    //     <button
+    //         onClick={handleTestNotification}
+    //         className="fixed bottom-4 right-4 z-50 bg-blue-500 text-white px-4 py-2 rounded-full text-xs shadow-lg opacity-80 hover:opacity-100 transition-opacity"
+    //         style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 9999 }}
+    //     >
+    //         Test Push
+    //     </button>
+    // )
 }

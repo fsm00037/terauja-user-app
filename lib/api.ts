@@ -193,3 +193,76 @@ export async function getPatientProfile(): Promise<any | null> {
         return null;
     }
 }
+
+/**
+ * Register an FCM token with the backend for push notifications
+ */
+export async function registerFCMToken(token: string): Promise<boolean> {
+    try {
+        console.log('[FCM] Sending token to backend:', token.substring(0, 30) + '...');
+        console.log('[FCM] API URL:', `${API_URL}/notifications/register-token`);
+
+        const res = await fetch(`${API_URL}/notifications/register-token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeader()
+            },
+            body: JSON.stringify({ token }),
+        });
+
+        const responseText = await res.text();
+        console.log('[FCM] Response status:', res.status);
+        console.log('[FCM] Response body:', responseText);
+
+        if (!res.ok) {
+            console.error('Failed to register FCM token:', responseText);
+            return false;
+        }
+        console.log('FCM token registered successfully');
+        return true;
+    } catch (e) {
+        console.error('Error registering FCM token:', e);
+        return false;
+    }
+}
+
+/**
+ * Unregister an FCM token from the backend
+ */
+export async function unregisterFCMToken(token: string): Promise<boolean> {
+    try {
+        const res = await fetch(`${API_URL}/notifications/unregister-token`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeader()
+            },
+            body: JSON.stringify({ token }),
+        });
+        return res.ok;
+    } catch (e) {
+        console.error('Error unregistering FCM token:', e);
+        return false;
+    }
+}
+
+/**
+ * Test push notification for current patient
+ */
+export async function testPushNotification(): Promise<boolean> {
+    try {
+        console.log('[FCM Test] Sending test notification request...');
+        const res = await fetch(`${API_URL}/notifications/test`, {
+            method: 'POST',
+            headers: { ...getAuthHeader() },
+        });
+        const text = await res.text();
+        console.log('[FCM Test] Response status:', res.status);
+        console.log('[FCM Test] Response body:', text);
+        return res.ok;
+    } catch (e) {
+        console.error('Error testing push notification:', e);
+        return false;
+    }
+}
