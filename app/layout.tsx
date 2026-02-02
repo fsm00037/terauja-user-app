@@ -2,11 +2,10 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
+import { NotificationProvider } from "@/components/notification-provider"
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
-
-import { NotificationManager } from "@/components/notification-manager"
 
 export const metadata: Metadata = {
   title: 'Psicouja user',
@@ -39,8 +38,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        <NotificationManager />
-        {children}
+        <NotificationProvider>
+          {children}
+        </NotificationProvider>
         <Analytics />
       </body>
     </html>

@@ -1,15 +1,31 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
 import { usePathname } from "next/navigation"
 import { getCurrentPatient } from "@/lib/auth"
-import { getPendingAssignments, type QuestionnaireCompletion, getMessages, registerFCMToken, testPushNotification } from "@/lib/api"
+import { getPendingAssignments, getMessages, registerFCMToken, testPushNotification } from "@/lib/api"
 import { requestFCMToken, onForegroundMessage, initializeFirebaseApp } from "@/lib/firebase"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Bell, X } from "lucide-react"
 
-export function NotificationManager() {
+interface NotificationContextType {
+    showPermissionModal: () => void
+    permission: NotificationPermission
+    testNotification: () => Promise<void>
+}
+
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
+
+export function useNotification() {
+    const context = useContext(NotificationContext)
+    if (!context) {
+        throw new Error("useNotification must be used within a NotificationProvider")
+    }
+    return context
+}
+
+export function NotificationProvider({ children }: { children: ReactNode }) {
     const [permission, setPermission] = useState<NotificationPermission>('default')
     const [fcmToken, setFcmToken] = useState<string | null>(null)
     const [knownIds, setKnownIds] = useState<Set<number>>(new Set())
@@ -44,7 +60,7 @@ export function NotificationManager() {
                 setPermission(Notification.permission)
             }
         } catch (error) {
-            console.error("[NotificationManager] Error initializing FCM:", error)
+            console.error("[NotificationProvider] Error initializing FCM:", error)
             toast.error("Error al activar notificaciones")
         }
     }
@@ -58,10 +74,17 @@ export function NotificationManager() {
             return
         }
 
-        if (Notification.permission === 'default') {
-            setShowPermissionRequest(true)
-        } else if (Notification.permission === 'granted') {
+        // If permission is already granted, init FCM
+        if (Notification.permission === 'granted') {
+            setPermission('granted')
             initFCM()
+        } else {
+            setPermission(Notification.permission)
+            // If default, show request automatically on first visit (logic controlled by us)
+            // For now, let's behave as requested: prompt on login if default
+            if (Notification.permission === 'default') {
+                setShowPermissionRequest(true)
+            }
         }
     }, [pathname])
 
@@ -113,7 +136,6 @@ export function NotificationManager() {
 
                 if (addedIds.length > 0) {
                     addedIds.forEach(assignment => {
-                        // Show toast for foreground (push notification handles background)
                         toast("Nueva Tarea Disponible", {
                             description: `Tienes un nuevo cuestionario pendiente: ${assignment.questionnaire.title}`,
                         })
@@ -145,12 +167,8 @@ export function NotificationManager() {
             }
         }
 
-        // Initial check
         checkUpdates()
-
-        // Poll every 60 seconds
         const interval = setInterval(checkUpdates, 60000)
-
         return () => clearInterval(interval)
     }, [knownIds, knownMessageIds])
 
@@ -159,46 +177,60 @@ export function NotificationManager() {
         setShowPermissionRequest(false)
     }
 
-    if (showPermissionRequest) {
-        return (
-            <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center pointer-events-none p-4 pb-24 sm:pb-4">
-                <div className="bg-card/95 backdrop-blur-xl border border-border/50 p-6 rounded-3xl shadow-2xl max-w-sm w-full space-y-4 pointer-events-auto animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex justify-between items-start">
-                        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
-                            <Bell className="w-6 h-6 text-primary" />
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 -mt-2 rounded-full" onClick={() => setShowPermissionRequest(false)}>
-                            <X className="w-4 h-4" />
-                        </Button>
-                    </div>
-
-                    <div className="space-y-1">
-                        <h3 className="font-semibold text-lg leading-tight">Activa las notificaciones</h3>
-                        <p className="text-muted-foreground text-sm leading-relaxed">
-                            Para no perderte los cuestionarios y mensajes importantes de tu terapeuta.
-                        </p>
-                    </div>
-
-                    <div className="flex gap-3 pt-2">
-                        <Button
-                            variant="default"
-                            onClick={handleEnableNotifications}
-                            className="flex-1 rounded-xl h-11 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
-                        >
-                            Permitir
-                        </Button>
-                        <Button
-                            variant="secondary"
-                            onClick={() => setShowPermissionRequest(false)}
-                            className="flex-1 rounded-xl h-11"
-                        >
-                            Ahora no
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        )
+    const testNotification = async () => {
+        const result = await testPushNotification()
+        if (result) {
+            toast.success("Notificación de prueba enviada")
+        } else {
+            toast.error("Error al enviar notificación de prueba")
+        }
     }
 
-    return null
+    return (
+        <NotificationContext.Provider value={{
+            showPermissionModal: () => setShowPermissionRequest(true),
+            permission,
+            testNotification
+        }}>
+            {children}
+            {showPermissionRequest && (
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center pointer-events-none p-4 pb-24 sm:pb-4">
+                    <div className="bg-card/95 backdrop-blur-xl border border-border/50 p-6 rounded-3xl shadow-2xl max-w-sm w-full space-y-4 pointer-events-auto animate-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex justify-between items-start">
+                            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
+                                <Bell className="w-6 h-6 text-primary" />
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 -mt-2 rounded-full" onClick={() => setShowPermissionRequest(false)}>
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </div>
+
+                        <div className="space-y-1">
+                            <h3 className="font-semibold text-lg leading-tight">Activa las notificaciones</h3>
+                            <p className="text-muted-foreground text-sm leading-relaxed">
+                                Para no perderte los cuestionarios y mensajes importantes de tu terapeuta.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                            <Button
+                                variant="default"
+                                onClick={handleEnableNotifications}
+                                className="flex-1 rounded-xl h-11 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+                            >
+                                Permitir
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                onClick={() => setShowPermissionRequest(false)}
+                                className="flex-1 rounded-xl h-11"
+                            >
+                                Ahora no
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </NotificationContext.Provider>
+    )
 }

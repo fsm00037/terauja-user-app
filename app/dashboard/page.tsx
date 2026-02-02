@@ -9,11 +9,14 @@ import { Bell, Clock, LogOut } from "lucide-react"
 import Link from "next/link"
 import { BottomNav } from "@/components/bottom-nav"
 
+import { useNotification } from "@/components/notification-provider"
+
 export default function DashboardPage() {
   const [patient, setPatient] = useState<Patient | null>(null)
   const [pendingCompletions, setPendingCompletions] = useState<QuestionnaireCompletion[]>([])
   const [psychologistOnline, setPsychologistOnline] = useState(false)
   const router = useRouter()
+  const { showPermissionModal, permission } = useNotification()
 
   useEffect(() => {
     const currentPatient = getCurrentPatient()
@@ -99,14 +102,25 @@ export default function DashboardPage() {
                 <h1 className="font-semibold text-foreground leading-tight">Usuario {patient.patientCode}</h1>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={showPermissionModal}
+                className={`rounded-xl ${permission === 'granted' ? 'text-primary/50' : 'text-primary animate-pulse'}`}
+                title="Configurar Notificaciones"
+              >
+                <Bell className="w-5 h-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
