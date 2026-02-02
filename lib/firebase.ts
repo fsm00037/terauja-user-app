@@ -78,6 +78,12 @@ export async function requestFCMToken(): Promise<string | null> {
 
         // Register service worker for FCM
         const swRegistration = await navigator.serviceWorker.register("/firebase-messaging-sw.js")
+        console.log("[FCM] Service Worker registered via register()")
+
+        // Wait for it to be ready
+        // This is crucial! "no active Service Worker" often means it's installing but not active yet.
+        await navigator.serviceWorker.ready
+        console.log("[FCM] Service Worker is ready")
 
         // Get FCM token
         const token = await getToken(messagingInstance, {

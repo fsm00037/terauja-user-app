@@ -47,8 +47,8 @@ function FormContent() {
     setPatient(p)
 
     getPendingAssignments().then(completions => {
-      // Separate pending (sent) and completed
-      const pending = completions.filter(c => c.status === 'sent')
+      // Separate pending (sent/missed) and completed
+      const pending = completions.filter(c => c.status === 'sent' || c.status === 'missed')
       const completed = completions.filter(c => c.status === 'completed')
       setPendingCompletions(pending)
       setCompletedList(completed)
@@ -349,13 +349,7 @@ function FormContent() {
           <p className="text-sm text-muted-foreground">Formularios pendientes</p>
         </div>
 
-        {/* Info Alert */}
-        <div className="bg-blue-50/80 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900 rounded-xl p-4 flex gap-3 text-sm text-blue-700 dark:text-blue-300">
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <p className="leading-snug">
-            Es importante responder a los formularios dentro del plazo asignado para un mejor seguimiento.
-          </p>
-        </div>
+
 
         <div>
           <div className="flex items-center gap-2 mb-4">
