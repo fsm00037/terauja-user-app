@@ -202,7 +202,7 @@ function FormContent() {
     const statusInfo = getStatusInfo(currentCompletion.scheduled_at, currentCompletion.deadline_hours)
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-background dark:via-background dark:to-background flex flex-col">
+      <div className="h-[100dvh] overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-background dark:via-background dark:to-background flex flex-col">
         <div className="sticky top-0 z-50 bg-white/80 dark:bg-card/80 backdrop-blur-lg border-b shadow-sm">
           <div className="container max-w-2xl mx-auto px-4 py-2">
             <div className="flex items-center gap-2">
@@ -319,24 +319,28 @@ function FormContent() {
               </CardContent>
             </Card>
 
-            <div className="flex gap-3 pt-4">
-              {currentQuestionIndex > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={handlePrevious}
-                  className="flex-1 h-12 text-base font-semibold rounded-xl border-2 bg-white/80 dark:bg-card"
-                >
-                  Anterior
-                </Button>
-              )}
+
+          </div>
+        </div>
+
+        <div className="bg-white/80 dark:bg-card/80 backdrop-blur-lg border-t p-4 z-50">
+          <div className="container max-w-2xl mx-auto flex gap-3">
+            {currentQuestionIndex > 0 && (
               <Button
-                onClick={handleNext}
-                disabled={!canProceed && !submitting}
-                className="flex-1 h-12 text-base font-bold rounded-xl shadow-lg disabled:opacity-50 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0"
+                variant="outline"
+                onClick={handlePrevious}
+                className="flex-1 h-12 text-base font-semibold rounded-xl border-2 bg-white/50 dark:bg-card"
               >
-                {submitting ? "Enviando..." : (currentQuestionIndex === questions.length - 1 ? "Completar Formulario" : "Siguiente")}
+                Anterior
               </Button>
-            </div>
+            )}
+            <Button
+              onClick={handleNext}
+              disabled={!canProceed && !submitting}
+              className="flex-1 h-12 text-base font-bold rounded-xl shadow-lg disabled:opacity-50 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0"
+            >
+              {submitting ? "Enviando..." : (currentQuestionIndex === questions.length - 1 ? "Completar Formulario" : "Siguiente")}
+            </Button>
           </div>
         </div>
       </div>
