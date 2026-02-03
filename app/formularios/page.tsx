@@ -103,8 +103,13 @@ function FormContent() {
 
     const success = await submitAssignment(currentCompletion.assignment_id, answersList)
 
+    setCompleted(true)
     if (success) {
-      setCompleted(true)
+      //si es tardio, cambiar el estado a late 
+      if (currentCompletion.status === 'sent') {
+        currentCompletion.status = 'late'
+      }
+
       setTimeout(() => {
         // Refresh data or return to list
         // For now, we stick to success screen
@@ -246,28 +251,28 @@ function FormContent() {
               <CardContent className="space-y-4 pb-8">
                 {/* Scale/Likert Questions - Show Big Number + Slider */}
                 {(question.type === "scale" || question.type === "likert") && (
-                  <div className="space-y-6">
-                    <div className="text-center py-2">
+                  <Slider
+                    value={[(currentAnswer as number) || (question.min || 1)]}
+                    onValueChange={(value) => handleAnswer(value[0])}
+                    min={question.min || 1}
+                    max={question.max || 10}
+                    step={1}
+                    className="w-full h-52 relative flex items-center justify-center cursor-pointer touch-none"
+                  >
+                    <div className="absolute top-4 inset-x-0 text-center pointer-events-none space-y-2">
                       <div className="inline-flex items-baseline gap-1.5">
-                        <span className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                        <span className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                           {(currentAnswer as number) || (question.min || 1)}
                         </span>
-                        <span className="text-xl text-muted-foreground font-medium">/ {question.max || 10}</span>
+                        <span className="text-2xl text-muted-foreground font-medium">/ {question.max || 10}</span>
                       </div>
                     </div>
-                    <Slider
-                      value={[(currentAnswer as number) || (question.min || 1)]}
-                      onValueChange={(value) => handleAnswer(value[0])}
-                      min={question.min || 1}
-                      max={question.max || 10}
-                      step={1}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs font-medium px-1">
+
+                    <div className="absolute bottom-4 inset-x-0 flex justify-between text-sm font-medium px-2 pointer-events-none">
                       <span className="text-blue-500">{question.minLabel || "Mínimo"}</span>
                       <span className="text-indigo-500">{question.maxLabel || "Máximo"}</span>
                     </div>
-                  </div>
+                  </Slider>
                 )}
 
                 {/* Frequency Questions - Show Radio Options */}

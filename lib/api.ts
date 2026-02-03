@@ -33,7 +33,7 @@ export interface QuestionnaireCompletion {
     assignment_id: number;
     patient_id: number;
     questionnaire_id: number;
-    status: 'pending' | 'completed' | 'missed' | 'sent';
+    status: 'pending' | 'completed' | 'missed' | 'sent' | 'late';
     scheduled_at: string;
     deadline_hours?: number;
     questionnaire: {
