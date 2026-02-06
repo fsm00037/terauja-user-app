@@ -71,7 +71,7 @@ export default function LoginPage() {
                   type="text"
                   value={patientCode}
                   onChange={(e) => setPatientCode(e.target.value)}
-                  placeholder="Ej. 858273"
+                  placeholder=""
                   className="h-14 pl-4 border-2 focus:border-primary transition-all duration-200"
                   disabled={loading}
                   autoFocus
@@ -120,6 +120,18 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
+        </div>
+
+        <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-2xl p-6 text-center space-y-2">
+          <p className="text-sm text-muted-foreground">
+            ¿Tienes problemas para acceder?
+          </p>
+          <p className="text-sm text-foreground">
+            Si has olvidado tus códigos o tienes alguna incidencia, contacta con María en:
+          </p>
+          <a href="mailto:mpe00009@red.ujaen.es" className="text-primary font-medium hover:underline block mt-1">
+            mpe00009@red.ujaen.es
+          </a>
         </div>
 
 
