@@ -53,11 +53,23 @@ const ensureUTC = (dateStr: string) => {
     return dateStr;
 };
 
+
+function handleAuthError() {
+    if (typeof window !== "undefined") {
+        localStorage.removeItem("patient");
+        window.location.href = "/login";
+    }
+}
+
 export async function getAssignments(accessCode: string): Promise<Assignment[]> {
     try {
         const res = await fetch(`${API_URL}/assignments/patient/${accessCode}`, {
             headers: { ...getAuthHeader() }
         });
+        if (res.status === 401) {
+            handleAuthError();
+            return [];
+        }
         if (!res.ok) return [];
         const data = await res.json();
         return data.map((a: any) => ({
@@ -78,6 +90,10 @@ export async function getPendingAssignments(): Promise<QuestionnaireCompletion[]
         const res = await fetch(`${API_URL}/assignments/my-pending`, {
             headers: { ...getAuthHeader() }
         });
+        if (res.status === 401) {
+            handleAuthError();
+            return [];
+        }
         if (!res.ok) return [];
         const data = await res.json();
         return data.map((c: any) => ({
@@ -100,6 +116,10 @@ export async function submitAssignment(assignmentId: number, answers: any[]): Pr
             },
             body: JSON.stringify(answers),
         });
+        if (res.status === 401) {
+            handleAuthError();
+            return false;
+        }
         return res.ok;
     } catch (e) {
         console.error(e);
@@ -120,6 +140,10 @@ export async function getMessages(patientId: number | string): Promise<ChatMessa
         const res = await fetch(`${API_URL}/messages/${patientId}`, {
             headers: { ...getAuthHeader() }
         });
+        if (res.status === 401) {
+            handleAuthError();
+            return [];
+        }
         if (!res.ok) return [];
         return await res.json();
     } catch (e) {
@@ -138,6 +162,10 @@ export async function sendMessage(patientId: number | string, content: string): 
             },
             body: JSON.stringify({ patient_id: patientId, content, is_from_patient: true }),
         });
+        if (res.status === 401) {
+            handleAuthError();
+            return null;
+        }
         if (!res.ok) return null;
         return await res.json();
     } catch (e) {
@@ -148,10 +176,13 @@ export async function sendMessage(patientId: number | string, content: string): 
 
 export async function sendHeartbeat(): Promise<void> {
     try {
-        await fetch(`${API_URL}/heartbeat`, {
+        const res = await fetch(`${API_URL}/heartbeat`, {
             method: 'POST',
             headers: { ...getAuthHeader() }
         });
+        if (res.status === 401) {
+            handleAuthError();
+        }
     } catch (e) {
         // Silent fail
     }
@@ -173,6 +204,10 @@ export async function getPatientStatus(): Promise<{ is_online: boolean; psycholo
         const res = await fetch(`${API_URL}/patient/status`, {
             headers: { ...getAuthHeader() }
         });
+        if (res.status === 401) {
+            handleAuthError();
+            return null;
+        }
         if (!res.ok) return null;
         return await res.json();
     } catch (e) {
@@ -186,6 +221,10 @@ export async function getPatientProfile(): Promise<any | null> {
         const res = await fetch(`${API_URL}/patient/me`, {
             headers: { ...getAuthHeader() }
         });
+        if (res.status === 401) {
+            handleAuthError();
+            return null;
+        }
         if (!res.ok) return null;
         return await res.json();
     } catch (e) {
@@ -210,6 +249,11 @@ export async function registerFCMToken(token: string): Promise<boolean> {
             },
             body: JSON.stringify({ token }),
         });
+
+        if (res.status === 401) {
+            handleAuthError();
+            return false;
+        }
 
         const responseText = await res.text();
         console.log('[FCM] Response status:', res.status);
@@ -240,6 +284,10 @@ export async function unregisterFCMToken(token: string): Promise<boolean> {
             },
             body: JSON.stringify({ token }),
         });
+        if (res.status === 401) {
+            handleAuthError();
+            return false;
+        }
         return res.ok;
     } catch (e) {
         console.error('Error unregistering FCM token:', e);
@@ -257,6 +305,10 @@ export async function testPushNotification(): Promise<boolean> {
             method: 'POST',
             headers: { ...getAuthHeader() },
         });
+        if (res.status === 401) {
+            handleAuthError();
+            return false;
+        }
         const text = await res.text();
         console.log('[FCM Test] Response status:', res.status);
         console.log('[FCM Test] Response body:', text);
