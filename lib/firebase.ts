@@ -63,6 +63,13 @@ export function getFirebaseMessaging(): Messaging | null {
  */
 export async function requestFCMToken(): Promise<string | null> {
     try {
+        // Check if Notification API and Service Worker are available
+        // iOS Safari does NOT support these in regular browser mode (only installed PWAs)
+        if (typeof Notification === 'undefined' || !('serviceWorker' in navigator)) {
+            console.warn('[FCM] Notifications or Service Workers not supported in this browser context')
+            return null
+        }
+
         const permission = await Notification.requestPermission()
 
         if (permission !== "granted") {

@@ -25,6 +25,12 @@ export function useNotification() {
     return context
 }
 
+// Helper to safely check if Notification API is available
+// iOS Safari does NOT support Notification API in regular browser mode (only installed PWAs)
+function isNotificationSupported(): boolean {
+    return typeof window !== 'undefined' && 'Notification' in window
+}
+
 export function NotificationProvider({ children }: { children: ReactNode }) {
     const [permission, setPermission] = useState<NotificationPermission>('default')
     const [fcmToken, setFcmToken] = useState<string | null>(null)
@@ -57,7 +63,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                     console.error("Failed to register token with backend")
                 }
             } else {
-                setPermission(Notification.permission)
+                setPermission(isNotificationSupported() ? Notification.permission : 'default')
             }
         } catch (error) {
             console.error("[NotificationProvider] Error initializing FCM:", error)
@@ -71,6 +77,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
         if (!patient) {
             setShowPermissionRequest(false)
+            return
+        }
+
+        // If Notification API is not available (e.g. iOS Safari browser mode), skip entirely
+        if (!isNotificationSupported()) {
+            setPermission('default')
             return
         }
 
