@@ -36,6 +36,7 @@ const KNOWN_IDS_KEY = "notification_known_ids"
 const KNOWN_MSG_IDS_KEY = "notification_known_msg_ids"
 
 function loadKnownIds(key: string): Set<number> {
+    if (typeof window === 'undefined') return new Set()
     try {
         const stored = sessionStorage.getItem(key)
         if (stored) {
@@ -46,6 +47,7 @@ function loadKnownIds(key: string): Set<number> {
 }
 
 function saveKnownIds(key: string, ids: Set<number>) {
+    if (typeof window === 'undefined') return
     try {
         sessionStorage.setItem(key, JSON.stringify([...ids]))
     } catch { /* ignore */ }
