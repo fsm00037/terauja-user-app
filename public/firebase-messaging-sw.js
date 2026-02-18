@@ -19,20 +19,13 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background messages (data-only messages from backend)
+// Handle background messages
+// NOTE: Since the backend sends messages WITH a 'notification' field,
+// the browser auto-displays the notification. We do NOT call
+// showNotification here to avoid duplicate notifications.
 messaging.onBackgroundMessage((payload) => {
-    // Read from data payload (backend sends data-only messages to avoid browser auto-display)
-    const notificationTitle = payload.data?.title || payload.notification?.title || 'Nueva Notificación';
-    const notificationOptions = {
-        body: payload.data?.body || payload.notification?.body || '',
-        icon: '/icon.svg',
-        badge: '/icon.svg',
-        tag: payload.data?.tag || payload.data?.type || 'default',
-        data: payload.data || {},
-        requireInteraction: true
-    };
-
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    console.log('[SW] Background message received:', payload?.data?.type);
+    // No manual showNotification — the browser handles display from the notification field
 });
 
 // Handle notification clicks
