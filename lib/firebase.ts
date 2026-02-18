@@ -119,10 +119,11 @@ export function onForegroundMessage(
     }
 
     return onMessage(messagingInstance, (payload) => {
-        // console.log("Foreground message received:", payload)
+        // Backend sends data-only messages (no notification field),
+        // so read title/body from data payload first, fall back to notification
         callback({
-            title: payload.notification?.title,
-            body: payload.notification?.body,
+            title: payload.data?.title || payload.notification?.title,
+            body: payload.data?.body || payload.notification?.body,
             data: payload.data
         })
     })

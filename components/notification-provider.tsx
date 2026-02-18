@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from "react"
 import { usePathname } from "next/navigation"
 import { getCurrentPatient } from "@/lib/auth"
 import { getPendingAssignments, getMessages, registerFCMToken, testPushNotification } from "@/lib/api"
@@ -31,17 +31,39 @@ function isNotificationSupported(): boolean {
     return typeof window !== 'undefined' && 'Notification' in window
 }
 
+// --- SessionStorage helpers for known IDs (survives iPhone suspend/resume) ---
+const KNOWN_IDS_KEY = "notification_known_ids"
+const KNOWN_MSG_IDS_KEY = "notification_known_msg_ids"
+
+function loadKnownIds(key: string): Set<number> {
+    try {
+        const stored = sessionStorage.getItem(key)
+        if (stored) {
+            return new Set(JSON.parse(stored) as number[])
+        }
+    } catch { /* ignore */ }
+    return new Set()
+}
+
+function saveKnownIds(key: string, ids: Set<number>) {
+    try {
+        sessionStorage.setItem(key, JSON.stringify([...ids]))
+    } catch { /* ignore */ }
+}
+
 export function NotificationProvider({ children }: { children: ReactNode }) {
     const [permission, setPermission] = useState<NotificationPermission>('default')
-    const [fcmToken, setFcmToken] = useState<string | null>(null)
-    const [knownIds, setKnownIds] = useState<Set<number>>(new Set())
-    const [knownMessageIds, setKnownMessageIds] = useState<Set<number>>(new Set())
     const [showPermissionRequest, setShowPermissionRequest] = useState(false)
-    const initRef = useRef(false)
     const fcmInitRef = useRef(false)
+    const fcmActiveRef = useRef(false) // tracks whether FCM push is active
+    const initRef = useRef(false)
     const pathname = usePathname()
 
-    const initFCM = async () => {
+    // Use refs for known IDs to avoid useEffect dependency loops
+    const knownIdsRef = useRef<Set<number>>(loadKnownIds(KNOWN_IDS_KEY))
+    const knownMessageIdsRef = useRef<Set<number>>(loadKnownIds(KNOWN_MSG_IDS_KEY))
+
+    const initFCM = useCallback(async () => {
         try {
             // Only run once per session if successful
             if (fcmInitRef.current) return
@@ -53,9 +75,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             const token = await requestFCMToken()
 
             if (token) {
-                setFcmToken(token)
                 setPermission('granted')
                 fcmInitRef.current = true
+                fcmActiveRef.current = true
 
                 // Register token with backend
                 const registered = await registerFCMToken(token)
@@ -69,7 +91,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             console.error("[NotificationProvider] Error initializing FCM:", error)
             toast.error("Error al activar notificaciones")
         }
-    }
+    }, [])
 
     // Check permissions and initialize on mount and route change
     useEffect(() => {
@@ -92,19 +114,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             initFCM()
         } else {
             setPermission(Notification.permission)
-            // If default, show request automatically on first visit (logic controlled by us)
-            // For now, let's behave as requested: prompt on login if default
             if (Notification.permission === 'default') {
                 setShowPermissionRequest(true)
             }
         }
-    }, [pathname])
+    }, [pathname, initFCM])
 
-    // Ensure we listen for foreground messages
+    // Ensure we listen for foreground messages (FCM push)
     useEffect(() => {
         if (permission === 'granted') {
             const unsubscribe = onForegroundMessage((payload) => {
+                // Use a unique toast ID based on the notification data to prevent duplicates
+                const toastId = payload.data?.type && payload.data?.id
+                    ? `fcm-${payload.data.type}-${payload.data.id}`
+                    : undefined
+
                 toast(payload.title || "Nueva Notificación", {
+                    id: toastId,
                     description: payload.body,
                 })
             })
@@ -116,7 +142,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }, [permission])
 
 
-    // Polling for assignments and messages (fallback for local notifications)
+    // Polling for assignments and messages (fallback when FCM is not active)
     useEffect(() => {
         const patient = getCurrentPatient()
         if (!patient) return
@@ -130,13 +156,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 const messages = patient.id ? await getMessages(patient.id) : []
                 const incomingMessages = messages.filter(m => !m.is_from_patient)
 
+                const currentKnownIds = knownIdsRef.current
+                const currentKnownMsgIds = knownMessageIdsRef.current
+
                 // On first run, just populate knownIds without notifying
                 if (!initRef.current) {
                     const ids = new Set(pending.map(p => p.id))
-                    setKnownIds(ids)
+                    knownIdsRef.current = ids
+                    saveKnownIds(KNOWN_IDS_KEY, ids)
 
                     const msgIds = new Set(incomingMessages.map(m => m.id))
-                    setKnownMessageIds(msgIds)
+                    knownMessageIdsRef.current = msgIds
+                    saveKnownIds(KNOWN_MSG_IDS_KEY, msgIds)
 
                     initRef.current = true
                     return
@@ -144,35 +175,37 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
                 // -- Process Assignments --
                 const newIds = new Set(pending.map(p => p.id))
-                const addedIds = pending.filter(p => !knownIds.has(p.id))
+                const addedAssignments = pending.filter(p => !currentKnownIds.has(p.id))
 
-                if (addedIds.length > 0) {
-                    addedIds.forEach(assignment => {
+                if (addedAssignments.length > 0 && !fcmActiveRef.current) {
+                    // Only show toasts from polling if FCM is NOT active
+                    // (FCM foreground handler already shows toasts when push is working)
+                    addedAssignments.forEach(assignment => {
                         toast("Nueva Tarea Disponible", {
+                            id: `poll-quest-${assignment.id}`,
                             description: `Tienes un nuevo cuestionario pendiente: ${assignment.questionnaire.title}`,
                         })
                     })
                 }
 
-                if (newIds.size !== knownIds.size || addedIds.length > 0) {
-                    setKnownIds(newIds)
-                }
+                knownIdsRef.current = newIds
+                saveKnownIds(KNOWN_IDS_KEY, newIds)
 
                 // -- Process Messages --
                 const newMsgIds = new Set(incomingMessages.map(m => m.id))
-                const addedMessages = incomingMessages.filter(m => !knownMessageIds.has(m.id))
+                const addedMessages = incomingMessages.filter(m => !currentKnownMsgIds.has(m.id))
 
-                if (addedMessages.length > 0) {
-                    addedMessages.forEach(() => {
+                if (addedMessages.length > 0 && !fcmActiveRef.current) {
+                    addedMessages.forEach(msg => {
                         toast("Nuevo Mensaje", {
+                            id: `poll-msg-${msg.id}`,
                             description: "Tienes un nuevo mensaje de tu psicólogo",
                         })
                     })
                 }
 
-                if (newMsgIds.size !== knownMessageIds.size || addedMessages.length > 0) {
-                    setKnownMessageIds(newMsgIds)
-                }
+                knownMessageIdsRef.current = newMsgIds
+                saveKnownIds(KNOWN_MSG_IDS_KEY, newMsgIds)
 
             } catch (error) {
                 console.error("Error checking updates for notifications:", error)
@@ -182,7 +215,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         checkUpdates()
         const interval = setInterval(checkUpdates, 60000)
         return () => clearInterval(interval)
-    }, [knownIds, knownMessageIds])
+        // Empty deps — refs don't trigger re-renders, polling runs once and uses interval
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleEnableNotifications = async () => {
         await initFCM()
