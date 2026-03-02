@@ -1,49 +1,23 @@
-# Psychology User App
+# Terauja User App - Patient Application
 
-Este es el frontend para la aplicación de usuarios de psicología.
+This is the mobile-web application for patients in the **Terauja** project. It allows patients to complete daily assessments, communicate with their therapists, and track their well-being.
 
-## Requisitos
+## 🚀 Overview
+The User App is a specialized frontend designed for ease of use on mobile devices. It focuses on the patient experience, providing a direct link to clinical support through EMA questionnaires and secure chat.
 
-- Node.js (versión LTS recomendada)
-- pnpm (recomendado dada la existencia de `pnpm-lock.yaml`) o npm
+### Key Features
+- **EMA Questionnaires**: Quick and intuitive daily "Ecological Momentary Assessment" forms.
+- **Secure Chat**: Direct real-time communication with the assigned therapist.
+- **Firebase Integration**: Real-time updates and push notifications for new tasks or messages.
+- **Responsive Design**: Optimized for mobile and tablet browsers.
 
-## Instalación
+## 🛠️ Technology Stack
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **Real-time Engine**: [Firebase](https://firebase.google.com/)
+- **UI Components**: [Radix UI](https://www.radix-ui.com/) & [Lucide React](https://lucide.dev/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Forms**: React Hook Form + Zod
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
 
-1. Clona el repositorio (si aún no lo has hecho).
-2. Instala las dependencias:
-
-```bash
-pnpm install
-# o
-npm install
-```
-
-## Desarrollo
-
-Para iniciar el servidor de desarrollo:
-
-```bash
-pnpm dev
-# o
-npm run dev
-```
-
-Abre [http://localhost:3000](http://localhost:3000) en tu navegador para ver la aplicación.
-
-## Producción
-
-Para construir la aplicación para producción:
-
-```bash
-pnpm build
-# o
-npm run build
-```
-
-Para iniciar la aplicación en modo producción:
-
-```bash
-pnpm start
-# o
-npm start
-```
+## ⚙️ Installation & Setup
+For detailed setup instructions, please refer to the [INSTALL.md](file:///c:/Users/UJA/Desktop/psicoluja/terauja-user-app/INSTALL.md) file.
