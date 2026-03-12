@@ -40,15 +40,18 @@ export default function DashboardPage() {
         if (freshProfile) {
           import("@/lib/auth").then(mod => {
             mod.updateCurrentPatient({
+              patientCode: freshProfile.patient_code,
               psychologistName: freshProfile.psychologist_name,
               psychologistSchedule: freshProfile.psychologist_schedule
             })
           })
           // Update local state if changed
-          if (freshProfile.psychologist_name !== currentPatient.psychologistName ||
+          if (freshProfile.patient_code !== currentPatient.patientCode ||
+            freshProfile.psychologist_name !== currentPatient.psychologistName ||
             freshProfile.psychologist_schedule !== currentPatient.psychologistSchedule) {
             setPatient(prev => prev ? ({
               ...prev,
+              patientCode: freshProfile.patient_code,
               psychologistName: freshProfile.psychologist_name,
               psychologistSchedule: freshProfile.psychologist_schedule
             }) : null)
