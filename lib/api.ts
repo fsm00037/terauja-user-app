@@ -318,3 +318,37 @@ export async function testPushNotification(): Promise<boolean> {
         return false;
     }
 }
+
+export async function setTypingStatus(isTyping: boolean): Promise<void> {
+    try {
+        const patient = getCurrentPatient();
+        if (!patient) return;
+        
+        await fetch(`${API_URL}/messages/typing`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeader()
+            },
+            body: JSON.stringify({ patient_id: patient.id, is_typing: isTyping }),
+        });
+    } catch (e) {
+        // Silent fail
+    }
+}
+
+export async function getTypingStatus(patientId: number | string): Promise<{ psychologist_is_typing: boolean; patient_is_typing: boolean } | null> {
+    try {
+        const res = await fetch(`${API_URL}/messages/${patientId}/typing`, {
+            headers: { ...getAuthHeader() }
+        });
+        if (res.status === 401) {
+            handleAuthError();
+            return null;
+        }
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (e) {
+        return null;
+    }
+}

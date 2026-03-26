@@ -17,7 +17,10 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState("")
   const [sending, setSending] = useState(false)
   const [psychologistOnline, setPsychologistOnline] = useState(false)
+  const [psychologistIsTyping, setPsychologistIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const typingRef = useRef<NodeJS.Timeout | null>(null)
+  const lastTypedSignalRef = useRef<number>(0)
   const router = useRouter()
 
   const refreshMessages = async (pId: string | number) => {
@@ -34,8 +37,11 @@ export default function ChatPage() {
       refreshMessages(currentPatient.id)
 
       const checkStatus = async () => {
-        const status = await import("@/lib/api").then((mod) => mod.getPatientStatus())
+        const mod = await import("@/lib/api")
+        const status = await mod.getPatientStatus()
         if (status) setPsychologistOnline(status.psychologist_is_online)
+        const typing = await mod.getTypingStatus(currentPatient.id)
+        if (typing) setPsychologistIsTyping(typing.psychologist_is_typing)
       }
 
       checkStatus()
@@ -49,9 +55,36 @@ export default function ChatPage() {
     }
   }, [router])
 
+  const prevMessagesLength = useRef(0)
+  const prevTyping = useRef(false)
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    if (messages.length > prevMessagesLength.current || (psychologistIsTyping && !prevTyping.current)) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+    prevMessagesLength.current = messages.length
+    prevTyping.current = psychologistIsTyping
+  }, [messages, psychologistIsTyping])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value)
+
+    const now = Date.now()
+    if (now - lastTypedSignalRef.current > 5000) {
+      import("@/lib/api").then((mod) => mod.setTypingStatus(true))
+      lastTypedSignalRef.current = now
+    }
+
+    if (typingRef.current) {
+      clearTimeout(typingRef.current)
+    }
+
+    typingRef.current = setTimeout(() => {
+      import("@/lib/api").then((mod) => mod.setTypingStatus(false))
+      typingRef.current = null
+      lastTypedSignalRef.current = 0
+    }, 2000)
+  }
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,6 +94,11 @@ export default function ChatPage() {
     setSending(true)
     const messageContent = newMessage.trim()
     setNewMessage("")
+    
+    if (typingRef.current) clearTimeout(typingRef.current)
+    import("@/lib/api").then((mod) => mod.setTypingStatus(false))
+    typingRef.current = null
+    lastTypedSignalRef.current = 0
 
     // Optimistic update could go here
     await sendMessage(patient.id, messageContent)
@@ -102,7 +140,9 @@ export default function ChatPage() {
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="font-bold text-sm truncate">{patient.psychologistName}</h1>
-            <p className="text-xs text-muted-foreground">{psychologistOnline ? "En línea" : "Desconectado"}</p>
+            <p className={cn("text-xs", psychologistIsTyping ? "text-primary font-medium animate-pulse" : "text-muted-foreground")}>
+              {psychologistIsTyping ? "Escribiendo..." : (psychologistOnline ? "En línea" : "Desconectado")}
+            </p>
           </div>
         </div>
       </header>
@@ -155,6 +195,15 @@ export default function ChatPage() {
               </div>
             )
           })}
+          {psychologistIsTyping && (
+            <div className="flex w-full justify-start mt-2">
+              <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 px-4 py-2.5 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-1.5 h-[42px]">
+                <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce"></span>
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -165,7 +214,7 @@ export default function ChatPage() {
           <form onSubmit={handleSend} className="flex gap-2 w-full items-center bg-slate-100 dark:bg-slate-800 rounded-[24px] px-2 py-1 border border-transparent focus-within:border-primary/50 transition-all">
             <Input
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={handleInputChange}
               placeholder="Escribe un mensaje..."
               disabled={sending}
               className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-3 py-2 h-auto text-[16px] placeholder:text-muted-foreground/70"
